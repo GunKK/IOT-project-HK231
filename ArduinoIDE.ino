@@ -4,6 +4,10 @@
 #include <DHTesp.h>
 
 #define DHT_PIN 4
+#define MQ2_A 33
+#define MQ2_D 32
+
+float D_value, A_value;
 
 DHTesp dht;
 
@@ -11,13 +15,14 @@ int fan = 20;
 
 unsigned long previousMillis = millis();
 
-void sendMQTTvalues(float temp, float hum)
+void sendMQTTvalues(float temp, float hum, float gas)
 {
   StaticJsonDocument<256> doc;
 
   doc["device"] = "ESP32";
   doc["temperature"] = temp;
   doc["humidity"] = hum;
+  doc["gas"] = gas;
 
   char buff[256];
   serializeJson(doc, buff);
@@ -32,6 +37,12 @@ void setup() {
   pinMode(PIN_RED,   OUTPUT);
   pinMode(PIN_GREEN, OUTPUT);
   pinMode(PIN_BLUE,  OUTPUT);
+
+  // fan
+  pinMode(FAN, OUTPUT);
+
+  // 
+  pinMode(MQ2_D, INPUT);
 
   connectAP();
   client.setServer(mqtt_server, mqtt_port);
@@ -48,13 +59,16 @@ void loop() {
 
   unsigned long currentMillis = millis();
 
-  if (currentMillis - previousMillis >= 5000) {
+  if (currentMillis - previousMillis >= 2000) {
     previousMillis = currentMillis;
+    
+    A_value=analogRead(MQ2_A);
+    D_value=digitalRead(MQ2_D);
 
     float temperature = dht.getTemperature();
     float humidity = dht.getHumidity();
     if (!isnan(temperature) && !isnan(humidity)) {
-      sendMQTTvalues(temperature, humidity);
+      sendMQTTvalues(temperature, humidity, A_value);
     }
     client.publish("toNodeRED", "hello from ESP32");
   }

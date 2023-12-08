@@ -15,11 +15,16 @@ StaticJsonDocument<200> doc;
 const int PIN_RED   = 15;
 const int PIN_GREEN = 2;
 const int PIN_BLUE  = 0;
+const int FAN = 12;
 
 void setColor(int R, int G, int B) {
   analogWrite(PIN_RED,   R);
   analogWrite(PIN_GREEN, G);
   analogWrite(PIN_BLUE,  B);
+}
+
+void controlFan(String isFanOn, int speed) {
+  isFanOn == "true" ? analogWrite(FAN, speed) : analogWrite(FAN, 0);
 }
 
 void reconnect()
@@ -34,6 +39,7 @@ void reconnect()
             client.subscribe("JSONfromNodeRED");
 
             client.subscribe("Iot/rgbled");  
+            client.subscribe("Iot/fan");  
             Serial.println("Subscribed");
         }
         else
@@ -70,10 +76,15 @@ void callback(char *topic, byte *message, unsigned int length)
         int r = doc["r"];
         int g = doc["g"];
         int b = doc["b"];
-        Serial.println(r);
-        Serial.println(g);
-        Serial.println(b);
         setColor(r, g, b);
+    }
+
+    //control fan 
+    if (String(topic) == "Iot/fan") {
+      Serial.print("Control fan");
+      Serial.print(messageTemp);
+      Serial.println();
+      controlFan(messageTemp, 255);
     }
 }
 
